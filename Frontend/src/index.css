@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+.suggestions-list {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: black #fcd34d; /* Firefox thumb and track */
+}
+
+.road-bg {
+  background: repeating-linear-gradient(
+    to right,
+    #1e293b,
+    #1e293b 48px,
+    #0f172a 48px,
+    #0f172a 52px
+  );
+}
+
