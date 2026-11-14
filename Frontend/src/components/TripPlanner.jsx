@@ -2,10 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import WeatherRouteMap from './WeatherRouteMap';
 import NominatimAutocomplete from './NominatimAutocomplete';
-import {format} from 'date-fns';
-import { MapPin, Flag, Sun, CloudRain, Cloud, Wind } from 'lucide-react';
-import { motion } from 'framer-motion';
-import WeatherPathGrid from './WeatherPathGrid'
+import WeatherPathGrid from './WeatherPathGrid';
 
 
 const TripPlanner = () => {
@@ -30,12 +27,13 @@ const TripPlanner = () => {
   const [Pathweather, setPathweather] = useState([])
   const [isLoading, setisLoading] = useState(true);
 
-  
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
   const getIntermediateLocations = async (start, destination) => {
     console.log("Got clicked by Find")
     setisLoading(true);
     setPathweather([]);
-  const response = await fetch('http://localhost:3000/route/intermediate-locations', {
+  const response = await fetch(`${apiUrl}/route/intermediate-locations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

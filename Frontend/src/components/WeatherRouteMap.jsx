@@ -13,7 +13,8 @@ import {
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { color } from 'framer-motion';
+import startIconUrl from '../assets/start.svg';
+import endIconUrl from '../assets/end.svg';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -75,23 +76,27 @@ function createWeatherIcon(weather) {
   });
 }
 
-// Start and end icons (from public folder)
+// Start and end map pin icons
 const greenFlagIcon = new L.Icon({
-  iconUrl: './src/assets/start.svg',
-  iconSize: [40, 40],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
+  iconUrl: startIconUrl,
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -36],
 });
 
 const redFlagIcon = new L.Icon({
-  iconUrl: './src/assets/end.svg',
-  iconSize: [40, 40],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
+  iconUrl: endIconUrl,
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -36],
 });
 
 const WeatherRouteMap = ({ stops }) => {
-  const path = stops.map(stop => [stop.lat, stop.lon]);
+  if (!stops?.length) {
+    return null;
+  }
+
+  const path = stops.map((stop) => [stop.lat, stop.lon]);
 
   return (
     <MapContainer
@@ -113,7 +118,7 @@ const WeatherRouteMap = ({ stops }) => {
         let icon;
         if (idx === 0) icon = greenFlagIcon;
         else if (idx === stops.length - 1) icon = redFlagIcon;
-        else icon = createWeatherIcon(stop.forecast.weather);
+        else icon = createWeatherIcon(stop.forecast?.weather || 'clear');
 
         return (
           <Marker key={idx} position={[stop.lat, stop.lon]} icon={icon}>
@@ -126,7 +131,7 @@ const WeatherRouteMap = ({ stops }) => {
             <Popup>
               <div style={{ fontFamily: 'sans-serif', lineHeight: 1.5, textAlign: 'center' }}>
                 <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
-                  {getWeatherIconComponent(stop.forecast.weather, 48, '#facc15')}
+                  {getWeatherIconComponent(stop.forecast?.weather || 'clear', 48, '#facc15')}
                 </div>
                 <div style={{ fontWeight: 'bold', fontSize: '1.4rem', marginBottom: 12 }}>
                   {stop.town}
@@ -134,9 +139,9 @@ const WeatherRouteMap = ({ stops }) => {
                 <div style={{ fontSize: '1rem', color: '#333' }}>
                   <div><strong>Arrival:</strong> {new Date(stop.arrival_time).toLocaleString()}</div>
                   <div><strong>Distance:</strong> {stop.distance_km} km</div>
-                  <div><strong>Weather:</strong> {stop.forecast.weather}</div>
-                  <div><strong>Temp:</strong> {stop.forecast.temperature} °C</div>
-                  <div><strong>Wind:</strong> {stop.forecast.wind_speed} m/s</div>
+                  <div><strong>Weather:</strong> {stop.forecast?.weather ?? 'Unknown'}</div>
+                  <div><strong>Temp:</strong> {stop.forecast?.temperature ?? '--'} °C</div>
+                  <div><strong>Wind:</strong> {stop.forecast?.wind_speed ?? '--'} m/s</div>
                 </div>
               </div>
             </Popup>
