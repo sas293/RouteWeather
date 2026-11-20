@@ -91,15 +91,31 @@ export class RouteService {
         const arrivalTimes = sampled.map( point => allArrivalTimes[point.index] );
 
 
-        // 4. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot)
+        // 4. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot).
+        // allSettled: one failed stop must not discard the others' forecasts.
 
-        const results = await Promise.all(sampled.map(async (point, i) => {
+        const timestamps = sampled.map((point, i) => departAt + arrivalTimes[i] * 1000);
+
+        const settled = await Promise.allSettled(sampled.map((point, i) => {
+            const [lon, lat] = point.coord;
+            return this.#getForecastCached(lat, lon, timestamps[i]);
+        }));
+
+        // Every stop failed = the weather service is down: surface its error (502) instead of an empty-looking trip.
+        if (settled.every(s => s.status === 'rejected')) {
+            throw settled[0].reason;
+        }
+
+        return sampled.map((point, i) => {
 
             const [lon, lat] = point.coord;
 
-            const timestamp = departAt + arrivalTimes[i] * 1000;
+            const timestamp = timestamps[i];
 
-            const { town, ...forecast } = await this.#getForecastCached(lat, lon, timestamp);
+            const { status, value } = settled[i];
+
+            // A failed stop keeps its place, ETA and distance; only its forecast is missing.
+            const { town = 'Unknown', ...forecast } = status === 'fulfilled' ? value : {};
 
             return {
                 town,
@@ -115,10 +131,8 @@ export class RouteService {
                     new Date(timestamp)
                         .toISOString(),
 
-                forecast
+                forecast: status === 'fulfilled' ? forecast : null
             };
-        }));
-
-        return results;
+        });
     }
 }

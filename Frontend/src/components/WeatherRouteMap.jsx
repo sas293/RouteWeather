@@ -26,6 +26,7 @@ L.Icon.Default.mergeOptions({
 
 // Weather icon component
 function getWeatherIconComponent(weather, size = 24, color = 'white') {
+  if (!weather) return <Cloud color='#94a3b8' size={size} />; // forecast unavailable for this stop
   const w = weather.toLowerCase();
   if (w.includes('rain')) return <CloudRain color={color} size={size} />;
   if (w.includes('cloud')) return <Cloud color={color} size={size} />;
@@ -37,13 +38,15 @@ function getWeatherIconComponent(weather, size = 24, color = 'white') {
 // DivIcon for weather emoji
 function createWeatherIcon(weather) {
   let bgColor = '#facc15';
-  const w = weather.toLowerCase();
+  const w = (weather || '').toLowerCase();
+  if (!weather) bgColor = '#94a3b8'; // forecast unavailable: neutral grey, not a misleading sun
   if (w.includes('rain')) bgColor = '#3b82f6';
   else if (w.includes('cloud')) bgColor = '#64748b';
   else if (w.includes('wind')) bgColor = '#fbbf24';
 
   let emoji = '☀️';
-  if (w.includes('rain')) emoji = '🌧️';
+  if (!weather) emoji = '❔';
+  else if (w.includes('rain')) emoji = '🌧️';
   else if (w.includes('cloud')) emoji = '☁️';
   else if (w.includes('wind')) emoji = '🌬️';
   else if (w.includes('sunny') || w.includes('clear')) emoji = '☀️';
@@ -118,7 +121,7 @@ const WeatherRouteMap = ({ stops }) => {
         let icon;
         if (idx === 0) icon = greenFlagIcon;
         else if (idx === stops.length - 1) icon = redFlagIcon;
-        else icon = createWeatherIcon(stop.forecast?.weather || 'clear');
+        else icon = createWeatherIcon(stop.forecast?.weather);
 
         return (
           <Marker key={idx} position={[stop.lat, stop.lon]} icon={icon}>
@@ -131,7 +134,7 @@ const WeatherRouteMap = ({ stops }) => {
             <Popup>
               <div style={{ fontFamily: 'sans-serif', lineHeight: 1.5, textAlign: 'center' }}>
                 <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
-                  {getWeatherIconComponent(stop.forecast?.weather || 'clear', 48, '#facc15')}
+                  {getWeatherIconComponent(stop.forecast?.weather, 48, '#facc15')}
                 </div>
                 <div style={{ fontWeight: 'bold', fontSize: '1.4rem', marginBottom: 12 }}>
                   {stop.town}

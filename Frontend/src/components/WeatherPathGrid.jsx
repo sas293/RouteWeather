@@ -110,7 +110,7 @@ export default function WeatherPathGrid({ Pathweather, isLoading }) {
 
                     {/* Weather Icon */}
                     <div className="mb-3 flex justify-center text-5xl">
-                      {getWeatherIcon(place.forecast.weather)}
+                      {place.forecast ? getWeatherIcon(place.forecast.weather) : <Cloud size={48} color="#64748b" />}
                     </div>
 
                     {/* Town Name */}
@@ -130,11 +130,11 @@ export default function WeatherPathGrid({ Pathweather, isLoading }) {
                       </li>
                       <li>
                         <span className="text-white">Weather:</span>{" "}
-                        {place.forecast.weather}
+                        {place.forecast?.weather ?? "Forecast unavailable"}
                       </li>
                       <li>
                         <span className="text-white">Wind:</span>{" "}
-                        {place.forecast?.windSpeed} m/s
+                        {place.forecast ? `${place.forecast.windSpeed} m/s` : "--"}
                       </li>
                     </ul>
 

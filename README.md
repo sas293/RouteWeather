@@ -57,6 +57,7 @@ flowchart LR
 
 - Input validation at the API boundary (coordinate type and range)
 - Central error handler with typed `AppError`s: upstream failures become clean `502`s, and internals are never leaked
+- Partial failures: if one stop's forecast fails, that stop returns `forecast: null` and the rest still arrive. Only when every stop fails does the request return a `502`
 - 5 s timeouts on all upstream calls
 - Rate limiting: 100 req / 15 min overall, 10 req / 15 min on the expensive route endpoint
 - CORS restricted to the frontend origin. Required env vars are checked at startup (fail fast)
@@ -103,7 +104,7 @@ Content-Type: application/json
 
 `departAt` must be between now and 4 days ahead. OpenWeather's free forecast covers 5 days, so the extra day leaves room for the drive itself. Anything else gets a `400`.
 
-Returns `{ results: [{ town, lat, lon, distance_km, arrival_time, forecast: { temperature, weather, windSpeed } }] }`
+Returns `{ results: [{ town, lat, lon, distance_km, arrival_time, forecast: { temperature, weather, windSpeed } | null }] }`. `forecast` is `null` for a stop whose forecast could not be fetched
 
 ## Trade-offs and next steps
 

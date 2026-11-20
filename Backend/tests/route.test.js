@@ -90,3 +90,29 @@ test('route cache stores only the fields the pipeline needs', async () => {
     assert.deepEqual(cached.steps, [{ way_points: [0, 9], duration: 3600 }]);
 });
 
+test('one failed forecast leaves the other stops intact', async () => {
+    let call = 0;
+    const routing = { getRoute: async () => fakeRoute };
+    const weather = {
+        getForecast: async () => {
+            if (call++ === 1) throw new Error('upstream hiccup');
+            return { town: 'Testville', temperature: 20, weather: 'clear sky', windSpeed: 3 };
+        }
+    };
+    const results = await new RouteService(routing, weather, new MemoryCache()).getRouteWeather([0, 0], [0.9, 0]);
+
+    const failed = results.filter(r => r.forecast === null);
+    assert.equal(failed.length, 1);
+    assert.equal(failed[0].town, 'Unknown');
+    assert.ok(failed[0].arrival_time);
+    assert.ok(results.filter(r => r.forecast !== null).length >= 1);
+});
+
+test('all forecasts failing surfaces the weather error', async () => {
+    const routing = { getRoute: async () => fakeRoute };
+    const weather = { getForecast: async () => { throw new Error('weather down'); } };
+    await assert.rejects(
+        new RouteService(routing, weather, new MemoryCache()).getRouteWeather([0, 0], [0.9, 0]),
+        /weather down/
+    );
+});
