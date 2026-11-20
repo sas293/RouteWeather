@@ -1,28 +1,33 @@
-export function getSamplingInterval(totalDistanceMeters) {
-    const maxPoints = 15;
+const MAX_POINTS = 15;
 
-    let interval = totalDistanceMeters / maxPoints;
+const MIN_INTERVAL_S = 10 * 60;
 
-    if (interval < 10000) return 10000;
-    if (interval < 20000) return 20000;
-    if (interval < 30000) return 30000;
+const ROUND_TO_S = 5 * 60;
 
-    return Math.ceil(interval / 10000) * 10000;
+// Seconds of driving between stops: ~MAX_POINTS spread over the trip, rounded up to whole 5 minutes.
+// Sampling by time (not distance) because forecasts change over time: a slow ghat/city stretch
+// gets as many stops per hour as a fast highway.
+export function getSamplingInterval(totalDurationSeconds) {
+    const interval = Math.ceil(totalDurationSeconds / MAX_POINTS / ROUND_TO_S) * ROUND_TO_S;
+
+    return Math.max(interval, MIN_INTERVAL_S);
 }
 
-export function samplePoints(coords, distances, interval) {
+// Picks the first point reached at or after each interval of travel time; start and end are always included.
+export function samplePoints(coords, distances, times, interval) {
     const sampled = [];
     let nextTarget = interval;
 
-    for (let i = 0; i < distances.length; i++) {
-        if (distances[i] >= nextTarget) {
+    for (let i = 0; i < times.length; i++) {
+        if (times[i] >= nextTarget) {
             sampled.push({
                 coord: coords[i],
                 distance: distances[i],
                 index: i
             });
 
-            nextTarget += interval;
+            // Skip targets already passed, so a long gap between points yields one stop, not duplicates.
+            while (nextTarget <= times[i]) nextTarget += interval;
         }
     }
 

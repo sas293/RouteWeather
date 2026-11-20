@@ -71,28 +71,22 @@ export class RouteService {
 
         const distances = computeCumulativeDistances(coords);
 
-        const totalDistance =  distances.at(-1);
-
-
-        // 2. Determine sampling interval
-
-        const interval = getSamplingInterval(totalDistance);
-
-
-        // 3. Sample route
-
-        const sampled = samplePoints( coords,distances,interval);
-
-
-        // 4. Calculate arrival times
+        // 2. Calculate arrival time (seconds from departure) at every route point
 
         const allArrivalTimes = computeArrivalTimes(distances, steps, summary?.duration ?? 0);
+
+
+        // 3. Sample route by travel time
+
+        const interval = getSamplingInterval(allArrivalTimes.at(-1));
+
+        const sampled = samplePoints(coords, distances, allArrivalTimes, interval);
 
 
         const arrivalTimes = sampled.map( point => allArrivalTimes[point.index] );
 
 
-        // 5. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot)
+        // 4. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot)
 
         const results = await Promise.all(sampled.map(async (point, i) => {
 

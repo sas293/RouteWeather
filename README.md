@@ -49,8 +49,8 @@ flowchart LR
 ### How it works
 
 1. **Route.** OpenRouteService returns the road geometry and turn-by-turn steps with durations.
-2. **Sample.** Cumulative haversine distance along the geometry. The sampling interval adapts to route length (≥ 10 km, at most ~15 stops), and the start and end are always included.
-3. **ETA.** Each step's duration from the routing engine is spread across its points **by distance, not point count**, because route geometry is dense on curves and sparse on highways. If steps are missing, the total route duration is spread by distance instead.
+2. **ETA.** Cumulative haversine distance along the geometry. Each step's duration from the routing engine is spread across its points **by distance, not point count**, because route geometry is dense on curves and sparse on highways. If steps are missing, the total route duration is spread by distance instead.
+3. **Sample by travel time.** A stop every N minutes of driving (≈ trip time ÷ 15, rounded up to 5 min, at least 10 min). The start and end are always included. Forecasts change over *time*, so a slow ghat or city stretch gets as many stops per hour as a fast highway. Sampling by distance would space stops unevenly in time. On Mysuru → Ooty, distance sampling gave gaps of 12–24 min; time sampling gives an even 20.
 4. **Forecast.** For each stop, pick the OpenWeather 3-hour forecast closest to its arrival time.
 
 ## Reliability and security
