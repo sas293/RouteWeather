@@ -22,18 +22,18 @@ export default function NominatimAutocomplete({ onSelect }) {
     const fetchSuggestions = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("https://nominatim.openstreetmap.org/search", {
-          params: {
-            q: query,
-            format: "json",
-            addressdetails: 1,
-            limit: 5,
-          },
-          headers: {
-            "User-Agent": "routeweather",
-          },
+        // Photon is built for type-ahead; Nominatim's usage policy forbids client-side autocomplete (and 429s it).
+        const res = await axios.get("https://photon.komoot.io/api/", {
+          params: { q: query, limit: 5 },
         });
-        setSuggestions(res.data);
+        setSuggestions(
+          res.data.features.map(({ properties: p, geometry }) => ({
+            place_id: `${p.osm_type}${p.osm_id}`,
+            lon: geometry.coordinates[0],
+            lat: geometry.coordinates[1],
+            display_name: [...new Set([p.name, p.city, p.state, p.country].filter(Boolean))].join(", "),
+          }))
+        );
       } catch (err) {
         console.error("Error fetching suggestions:", err);
       } finally {
