@@ -12,21 +12,53 @@ import {
 } from './eta.js';
 
 
+const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
+const ROUTE_TTL_MS = 24 * 60 * 60 * 1000; // road geometry rarely changes
+
+const WEATHER_TTL_MS = 30 * 60 * 1000; // OWM refreshes forecasts roughly every few hours
+
+
 export class RouteService {
 
     constructor(
         routingProvider,
         weatherProvider,
-        geocodingProvider
+        cache
     ) {
         this.routingProvider = routingProvider;
         this.weatherProvider = weatherProvider;
-        this.geocodingProvider = geocodingProvider;
+        this.cache = cache;
+    }
+
+    async #getForecastCached(lat, lon, timestamp) {
+
+        // OWM forecasts come in 3-hour slots, so arrivals in the same slot at the same ~1 km cell share an entry.
+        const slot = Math.round(timestamp / THREE_HOURS_MS);
+
+        const key = `weather:${lat.toFixed(2)},${lon.toFixed(2)}:${slot}`;
+
+        const hit = await this.cache.get(key);
+
+        if (hit !== undefined) return hit;
+
+        const forecast = await this.weatherProvider.getForecast(lat, lon, timestamp);
+
+        await this.cache.set(key, forecast, WEATHER_TTL_MS);
+
+        return forecast;
     }
 
     async getRouteWeather(start, end) {
 
-        const routeData = await this.routingProvider.getRoute(start,end);
+        const routeKey = `route:${start.join(',')}:${end.join(',')}`;
+
+        let routeData = await this.cache.get(routeKey);
+
+        if (routeData === undefined) {
+            routeData = await this.routingProvider.getRoute(start, end);
+            await this.cache.set(routeKey, routeData, ROUTE_TTL_MS);
+        }
 
         const coords = routeData.features[0].geometry.coordinates;
 
@@ -58,29 +90,20 @@ export class RouteService {
         const arrivalTimes = sampled.map( point => allArrivalTimes[point.index] );
 
 
-        // 5. Fetch weather + location
+        // 5. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot)
 
         const now = Date.now();
 
-        const results = [];
-
-        for (let i = 0; i < sampled.length; i++) {
-
-            const point = sampled[i];
+        const results = await Promise.all(sampled.map(async (point, i) => {
 
             const [lon, lat] = point.coord;
 
             const timestamp = now + arrivalTimes[i] * 1000;
 
+            const { town, ...forecast } = await this.#getForecastCached(lat, lon, timestamp);
 
-            const forecast = await this.weatherProvider.getForecast(lat,lon,timestamp);
-
-
-            const location = await this.geocodingProvider.reverseGeocode(lat,lon);
-
-
-            results.push({
-                town: location,
+            return {
+                town,
 
                 lat,
                 lon,
@@ -93,9 +116,9 @@ export class RouteService {
                     new Date(timestamp)
                         .toISOString(),
 
-                forecast : forecast
-            });
-        }
+                forecast
+            };
+        }));
 
         return results;
     }

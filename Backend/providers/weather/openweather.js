@@ -29,6 +29,8 @@ export class OpenWeatherProvider extends WeatherProvider {
         });
 
         return {
+            // OWM already resolves the nearest locality, so no separate reverse-geocoding call is needed.
+            town: response.data.city?.name || 'Unknown',
             temperature: closest.main.temp,
             weather: closest.weather[0].description,
             windSpeed: closest.wind.speed
