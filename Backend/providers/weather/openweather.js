@@ -3,6 +3,9 @@ import { config } from '../../config/env.js';
 import { WeatherProvider } from './weather.js';
 import { AppError } from '../../utils/AppError.js';
 
+// Fail fast instead of holding the request open if the upstream API hangs.
+const UPSTREAM_TIMEOUT_MS = 5000;
+
 export class OpenWeatherProvider extends WeatherProvider {
 
   async getForecast(lat, lon, timestamp) {
@@ -10,6 +13,7 @@ export class OpenWeatherProvider extends WeatherProvider {
         const response = await axios.get(
             'https://api.openweathermap.org/data/2.5/forecast',
             {
+                timeout: UPSTREAM_TIMEOUT_MS,
                 params: {
                     lat,
                     lon,

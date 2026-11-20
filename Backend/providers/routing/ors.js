@@ -3,6 +3,9 @@ import { config } from '../../config/env.js';
 import { RoutingProvider } from './routing.js';
 import { AppError } from '../../utils/AppError.js';
 
+// Fail fast instead of holding the request open if the upstream API hangs.
+const UPSTREAM_TIMEOUT_MS = 5000;
+
 export class OrsProvider extends RoutingProvider {
 
     async getRoute(start, end) {
@@ -13,6 +16,7 @@ export class OrsProvider extends RoutingProvider {
                 coordinates: [start, end]
             },
             {
+                timeout: UPSTREAM_TIMEOUT_MS,
                 headers: {
                     Authorization: config.orsApiKey,
                     'Content-Type': 'application/json'
