@@ -20,12 +20,19 @@ export class MemoryCache extends Cache {
             return undefined;
         }
 
+        // LRU: re-insert on every hit so the Map's insertion order becomes recency order.
+        this.#store.delete(key);
+        this.#store.set(key, entry);
+
         return entry.value;
     }
 
     async set(key, value, ttlMs) {
-        // Map keeps insertion order, so the first key is the oldest: evict it to bound memory.
-        if (this.#store.size >= this.maxEntries && !this.#store.has(key)) {
+        // An overwrite counts as a use: drop the old position so the key moves to the most-recent end.
+        this.#store.delete(key);
+
+        // The first key in the Map is the least recently used: evict it to bound memory.
+        if (this.#store.size >= this.maxEntries) {
             this.#store.delete(this.#store.keys().next().value);
         }
 

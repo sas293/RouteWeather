@@ -29,7 +29,7 @@ Measured on Delhi → Jaipur (~270 km, 12 stops):
 How:
 1. **Dropped a redundant dependency.** OpenWeather's forecast response already includes the nearest locality, so the separate reverse-geocoding call per stop was removed. That halved the outside API calls and removed the rate limit behind the 502s.
 2. **Parallel fetching.** Forecasts for all stops are requested at the same time with `Promise.all`.
-3. **TTL cache.** Routes are cached for 24 h. Forecasts are cached for 30 min, keyed by a ~1 km grid cell and 3-hour forecast slot, so nearby stops and repeat trips reuse entries.
+3. **LRU + TTL cache.** Routes are cached for 24 h, storing only the geometry, step durations and total duration (not the full routing response). Forecasts are cached for 30 min, keyed by a ~1 km grid cell and 3-hour forecast slot, so nearby stops and repeat trips reuse entries. When the cache is full, the least recently used entry is evicted, so popular routes stay warm while one-off routes leave first.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ How:
 flowchart LR
     UI[React + Leaflet] -->|POST /route/intermediate-locations| C[Controller<br/>input validation]
     C --> S[RouteService]
-    S --> Cache[(Cache<br/>in-memory TTL)]
+    S --> Cache[(Cache<br/>in-memory LRU + TTL)]
     S --> R[RoutingProvider<br/>OpenRouteService]
     S --> W[WeatherProvider<br/>OpenWeather]
     S -.-> U[sampling · ETA · distance<br/>pure functions]

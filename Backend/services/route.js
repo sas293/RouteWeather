@@ -53,18 +53,23 @@ export class RouteService {
 
         const routeKey = `route:${start.join(',')}:${end.join(',')}`;
 
-        let routeData = await this.cache.get(routeKey);
+        let route = await this.cache.get(routeKey);
 
-        if (routeData === undefined) {
-            routeData = await this.routingProvider.getRoute(start, end);
-            await this.cache.set(routeKey, routeData, ROUTE_TTL_MS);
+        if (route === undefined) {
+            const { geometry, properties } = (await this.routingProvider.getRoute(start, end)).features[0];
+
+            // Cache only what the pipeline reads, not the full ORS response (instructions, names, metadata),
+            // so each LRU entry stays small and many more routes fit in memory.
+            route = {
+                coords: geometry.coordinates,
+                steps: properties.segments?.[0]?.steps?.map(({ way_points, duration }) => ({ way_points, duration })),
+                duration: properties.summary?.duration ?? 0
+            };
+
+            await this.cache.set(routeKey, route, ROUTE_TTL_MS);
         }
 
-        const coords = routeData.features[0].geometry.coordinates;
-
-        const { segments, summary } = routeData.features[0].properties;
-
-        const steps = segments?.[0]?.steps;
+        const { coords, steps, duration } = route;
 
 
         // 1. Calculate cumulative distances
@@ -73,7 +78,7 @@ export class RouteService {
 
         // 2. Calculate arrival time (seconds from departure) at every route point
 
-        const allArrivalTimes = computeArrivalTimes(distances, steps, summary?.duration ?? 0);
+        const allArrivalTimes = computeArrivalTimes(distances, steps, duration);
 
 
         // 3. Sample route by travel time

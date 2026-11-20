@@ -65,3 +65,28 @@ test('arrival times start at the given departure time', async () => {
     assert.equal(results[0].arrival_time, '2026-06-01T06:00:00.000Z');
     assert.equal(results.at(-1).arrival_time, '2026-06-01T07:00:00.000Z'); // fake route takes 3600 s
 });
+
+test('MemoryCache evicts the least recently used entry, not the oldest inserted', async () => {
+    const cache = new MemoryCache(2);
+    await cache.set('popular', 1, 60_000);
+    await cache.set('oneOff', 2, 60_000);
+
+    await cache.get('popular');          // a hit makes 'popular' most recent
+    await cache.set('new', 3, 60_000);   // full: evicts the LRU entry
+
+    assert.equal(await cache.get('popular'), 1);
+    assert.equal(await cache.get('oneOff'), undefined);
+    assert.equal(await cache.get('new'), 3);
+});
+
+test('route cache stores only the fields the pipeline needs', async () => {
+    const cache = new MemoryCache();
+    const routing = { getRoute: async () => fakeRoute };
+    const weather = { getForecast: async () => ({ town: 'T', temperature: 1, weather: 'clear sky', windSpeed: 1 }) };
+    await new RouteService(routing, weather, cache).getRouteWeather([0, 0], [0.9, 0]);
+
+    const cached = await cache.get('route:0,0:0.9,0');
+    assert.deepEqual(Object.keys(cached).sort(), ['coords', 'duration', 'steps']);
+    assert.deepEqual(cached.steps, [{ way_points: [0, 9], duration: 3600 }]);
+});
+
