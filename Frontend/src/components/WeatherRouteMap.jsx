@@ -141,7 +141,7 @@ const WeatherRouteMap = ({ stops }) => {
                   <div><strong>Distance:</strong> {stop.distance_km} km</div>
                   <div><strong>Weather:</strong> {stop.forecast?.weather ?? 'Unknown'}</div>
                   <div><strong>Temp:</strong> {stop.forecast?.temperature ?? '--'} °C</div>
-                  <div><strong>Wind:</strong> {stop.forecast?.wind_speed ?? '--'} m/s</div>
+                  <div><strong>Wind:</strong> {stop.forecast?.windSpeed ?? '--'} m/s</div>
                 </div>
               </div>
             </Popup>

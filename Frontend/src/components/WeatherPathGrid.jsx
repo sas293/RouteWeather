@@ -134,7 +134,7 @@ export default function WeatherPathGrid({ Pathweather, isLoading }) {
                       </li>
                       <li>
                         <span className="text-white">Wind:</span>{" "}
-                        {place.forecast.wind_speed} m/s
+                        {place.forecast?.windSpeed} m/s
                       </li>
                     </ul>
 
