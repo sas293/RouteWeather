@@ -55,7 +55,10 @@ export default function NominatimAutocomplete({ onSelect }) {
   // If user edits input after selection, clear selectedPlace so suggestions come back
   const handleChange = (e) => {
     setQuery(e.target.value);
-    if (selectedPlace) setSelectedPlace(null);
+    if (selectedPlace) {
+      setSelectedPlace(null);
+      if (onSelect) onSelect({}); // text no longer matches the picked place, so un-pick it in the parent too
+    }
   };
 
   return (

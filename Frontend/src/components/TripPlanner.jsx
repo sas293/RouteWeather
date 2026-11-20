@@ -25,38 +25,55 @@ const TripPlanner = () => {
   const [start, setstart] = useState({});
   const [destination, setdestination] = useState({});
   const [Pathweather, setPathweather] = useState([])
-  const [isLoading, setisLoading] = useState(true);
+  const [isLoading, setisLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   const getIntermediateLocations = async (start, destination) => {
-    console.log("Got clicked by Find")
     setisLoading(true);
+    setError('');
     setPathweather([]);
-  const response = await fetch(`${apiUrl}/route/intermediate-locations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-        start: [start.lon, start.lat], // ORS expects [lon, lat]
-        end: [destination.lon, destination.lat],
+    try {
+      const response = await fetch(`${apiUrl}/route/intermediate-locations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          start: [start.lon, start.lat], // ORS expects [lon, lat]
+          end: [destination.lon, destination.lat],
         }),
-    });
-  
+      });
 
-    const data = await response.json();
-    console.log(data.results);
-    setisLoading(false);
-    setPathweather(data.results);
-    };
+      // Backend errors are JSON ({ error }), but a proxy/crash may return HTML, so don't trust the body.
+      const data = await response.json().catch(() => ({}));
 
-  const handleclick = async() => {
-    if (!Object.keys(start).length || !Object.keys(destination).length) alert("Not a valid input");
-    else{ 
-      setisClicked(true);
-      await getIntermediateLocations(start,destination);
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed (${response.status}). Please try again.`);
+      }
+
+      setPathweather(data.results ?? []);
+    } catch (err) {
+      // fetch rejects with TypeError when the server is unreachable.
+      setError(err instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : err.message);
+    } finally {
+      setisLoading(false);
     }
+  };
+
+  const handleclick = async () => {
+    if (isLoading) return;
+    if (!start.lat || !destination.lat) {
+      setError('Please pick both a starting point and a destination from the suggestions.');
+      return;
+    }
+    if (start.lat === destination.lat && start.lon === destination.lon) {
+      setError('Starting point and destination are the same.');
+      return;
+    }
+    setisClicked(true);
+    await getIntermediateLocations(start, destination);
   }
 
   return (
@@ -89,20 +106,24 @@ const TripPlanner = () => {
 
         </div>
 
-        <div className='button flex justify-center items-start text-white  h-1/4'>
+        <div className='button flex flex-col gap-2 items-center text-white  h-1/4'>
 
-          <button onClick={handleclick} className='bg-amber-400 text-slate-900 px-8 font-bold text-lg py-1 rounded-lg cursor-pointer'>Find</button>
+          <button onClick={handleclick} disabled={isLoading} className='bg-amber-400 text-slate-900 px-8 font-bold text-lg py-1 rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'>
+            {isLoading ? 'Finding…' : 'Find'}
+          </button>
+
+          {error && <p role='alert' className='text-red-400 text-sm text-center px-4'>{error}</p>}
 
         </div>
 
       </div>
-      {isClicked&&<div className='w-[80vw] rounded-2xl py-10 min-h-[50vh] my-10 mx-auto'>
+      {isClicked&&!error&&<div className='w-[80vw] rounded-2xl py-10 min-h-[50vh] my-10 mx-auto'>
       <WeatherPathGrid Pathweather={Pathweather} isLoading={isLoading} className="w-full"  />
       </div>
       }
         
         {
-          !isLoading&&<div className='w-[80vw] rounded-2xl py-10 min-h-[50vh] my-10 mx-auto'>
+          !isLoading&&Pathweather.length>0&&<div className='w-[80vw] rounded-2xl py-10 min-h-[50vh] my-10 mx-auto'>
             <div>
               <h1 className="text-2xl font-semibold mb-4">Route Map with Weather</h1>
               <WeatherRouteMap stops={Pathweather} className="border-4 border-black"/>
