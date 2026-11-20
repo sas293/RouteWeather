@@ -1,33 +1,30 @@
-export function computeArrivalTimes(coords, steps, distances) {
+// Seconds from departure to each route coordinate, using ORS's road-aware durations.
+// Within a step, time is spread by distance (not point count): geometry is dense on curves, sparse on highways.
+export function computeArrivalTimes(distances, steps, totalDuration) {
 
-    if (!steps || !Array.isArray(steps)) {
-        throw new Error('ORS steps missing or malformed.');
+    const totalDistance = distances.at(-1);
+
+    // Fallback when ORS returns no steps: spread the route's total duration by distance.
+    if (!steps?.length) {
+        return distances.map(d => totalDistance > 0 ? (d / totalDistance) * totalDuration : 0);
     }
 
-    const orsArrival = Array(coords.length).fill(0);
+    const times = Array(distances.length).fill(0);
 
-    const avgSpeed = 11.89; // 50 km/h in m/s
+    // Steps are contiguous ([a,b], [b,c], ...), so times[startIdx] is already set by the previous step.
+    for (const { way_points: [startIdx, endIdx], duration } of steps) {
 
-    for (const step of steps) {
+        const stepDistance = distances[endIdx] - distances[startIdx];
 
-        const [startIdx, endIdx] = step.way_points;
+        for (let i = startIdx + 1; i <= endIdx; i++) {
 
-        const stepLength = endIdx - startIdx;
+            const share = stepDistance > 0
+                ? (distances[i] - distances[startIdx]) / stepDistance
+                : (i - startIdx) / (endIdx - startIdx);
 
-        if (stepLength <= 0) continue;
-
-        const durationPerStep =
-            step.duration / stepLength;
-
-        for ( let i = startIdx + 1; i <= endIdx; i++ ) {
-            orsArrival[i] = orsArrival[i - 1] + durationPerStep;
+            times[i] = times[startIdx] + share * duration;
         }
     }
 
-    const distanceBased = distances.map( distance => distance / avgSpeed );
-
-    const blended =
-        orsArrival.map( (time, i) => (time + distanceBased[i]) / 2 );
-
-    return blended;
+    return times;
 }

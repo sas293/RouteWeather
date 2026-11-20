@@ -62,7 +62,9 @@ export class RouteService {
 
         const coords = routeData.features[0].geometry.coordinates;
 
-        const steps = routeData.features[0].properties.segments[0]?.steps;
+        const { segments, summary } = routeData.features[0].properties;
+
+        const steps = segments?.[0]?.steps;
 
 
         // 1. Calculate cumulative distances
@@ -84,7 +86,7 @@ export class RouteService {
 
         // 4. Calculate arrival times
 
-        const allArrivalTimes = computeArrivalTimes( coords, steps, distances );
+        const allArrivalTimes = computeArrivalTimes(distances, steps, summary?.duration ?? 0);
 
 
         const arrivalTimes = sampled.map( point => allArrivalTimes[point.index] );
