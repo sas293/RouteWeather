@@ -59,7 +59,7 @@ flowchart LR
 - Central error handler with typed `AppError`s: upstream failures become clean `502`s, and internals are never leaked
 - Partial failures: if one stop's forecast fails, that stop returns `forecast: null` and the rest still arrive. Only when every stop fails does the request return a `502`
 - 5 s timeouts on all upstream calls
-- Rate limiting: 100 req / 15 min overall, 10 req / 15 min on the expensive route endpoint
+- Rate limiting per client IP: 100 req / 15 min overall, 10 req / 15 min on the expensive route endpoint. `trust proxy` is set so the real client IP is used behind a hosting proxy (otherwise every user would share one bucket)
 - CORS restricted to the frontend origin. Required env vars are checked at startup (fail fast)
 - API keys stay on the server and are never logged
 - Frontend shows a clear message for every failure (validation, rate limit, upstream error, network down)
