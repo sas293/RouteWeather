@@ -1,6 +1,6 @@
 import { routeService } from '../container/dependencies.js';
 import { AppError } from '../utils/AppError.js';
-import { parseCoordinates } from '../utils/validation.js';
+import { parseCoordinates, parseDepartureTime } from '../utils/validation.js';
 
 
 export async function getIntermediateLocations( req , res , next ) {
@@ -16,7 +16,16 @@ export async function getIntermediateLocations( req , res , next ) {
             );
         }
 
-        const results = await routeService.getRouteWeather(start,end);
+        const departAt = parseDepartureTime(req.body.departAt);
+
+        if (departAt === null) {
+            throw new AppError(
+                'Invalid departure time. It must be between now and 4 days ahead.',
+                400
+            );
+        }
+
+        const results = await routeService.getRouteWeather(start, end, departAt);
         
         return res.json({ results });
 

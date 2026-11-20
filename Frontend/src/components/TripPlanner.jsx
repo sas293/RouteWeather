@@ -27,6 +27,12 @@ const TripPlanner = () => {
   const [Pathweather, setPathweather] = useState([])
   const [isLoading, setisLoading] = useState(false);
   const [error, setError] = useState('');
+  const [departAt, setDepartAt] = useState(''); // '' means leave now
+
+  // <input type="datetime-local"> takes local "YYYY-MM-DDTHH:mm"; must match the backend's 4-day forecast cap.
+  const toLocalInput = (date) => new Date(date - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const minDeparture = toLocalInput(new Date());
+  const maxDeparture = toLocalInput(new Date(Date.now() + 4 * 24 * 60 * 60 * 1000));
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -43,6 +49,8 @@ const TripPlanner = () => {
         body: JSON.stringify({
           start: [start.lon, start.lat], // ORS expects [lon, lat]
           end: [destination.lon, destination.lat],
+          // datetime-local is parsed as local time; send UTC ISO. Omitted (undefined) means "now".
+          departAt: departAt ? new Date(departAt).toISOString() : undefined,
         }),
       });
 
@@ -108,9 +116,24 @@ const TripPlanner = () => {
 
         <div className='button flex flex-col gap-2 items-center text-white  h-1/4'>
 
-          <button onClick={handleclick} disabled={isLoading} className='bg-amber-400 text-slate-900 px-8 font-bold text-lg py-1 rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'>
-            {isLoading ? 'Finding…' : 'Find'}
-          </button>
+          <div className='flex flex-wrap items-center justify-center gap-3'>
+            <label className='flex items-center gap-2 text-sm'>
+              Leaving at
+              <input
+                type='datetime-local'
+                value={departAt}
+                min={minDeparture}
+                max={maxDeparture}
+                onChange={(e) => setDepartAt(e.target.value)}
+                className='px-3 py-1 rounded-lg bg-amber-400 text-slate-900 outline-none'
+              />
+              {!departAt && <span className='text-slate-400'>(now)</span>}
+            </label>
+
+            <button onClick={handleclick} disabled={isLoading} className='bg-amber-400 text-slate-900 px-8 font-bold text-lg py-1 rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'>
+              {isLoading ? 'Finding…' : 'Find'}
+            </button>
+          </div>
 
           {error && <p role='alert' className='text-red-400 text-sm text-center px-4'>{error}</p>}
 

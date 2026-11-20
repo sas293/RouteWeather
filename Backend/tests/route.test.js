@@ -56,3 +56,12 @@ test('MemoryCache expires entries and evicts the oldest when full', async () => 
     await cache.set('d', 4, -1);
     assert.equal(await cache.get('d'), undefined);
 });
+
+test('arrival times start at the given departure time', async () => {
+    const { service } = makeService();
+    const departAt = Date.parse('2026-06-01T06:00:00Z');
+    const results = await service.getRouteWeather([0, 0], [0.9, 0], departAt);
+
+    assert.equal(results[0].arrival_time, '2026-06-01T06:00:00.000Z');
+    assert.equal(results.at(-1).arrival_time, '2026-06-01T07:00:00.000Z'); // fake route takes 3600 s
+});

@@ -11,6 +11,7 @@
 
 - Place search with autocomplete (Photon / OpenStreetMap)
 - Driving route from OpenRouteService, sampled into up to ~15 evenly spaced stops
+- Choose when you leave: now or any time up to 4 days ahead
 - Arrival time at every stop, using the routing engine's per-step durations
 - Forecast for each stop matched to its arrival time (3-hour slots from OpenWeather)
 - Interactive map (Leaflet) plus a weather timeline along the route
@@ -93,8 +94,14 @@ npm run dev               # http://localhost:5173
 POST /route/intermediate-locations
 Content-Type: application/json
 
-{ "start": [77.209, 28.6139], "end": [75.7873, 26.9124] }   // [longitude, latitude]
+{
+  "start": [77.209, 28.6139],            // [longitude, latitude]
+  "end": [75.7873, 26.9124],
+  "departAt": "2026-11-22T06:00:00Z"     // optional ISO time, defaults to now
+}
 ```
+
+`departAt` must be between now and 4 days ahead. OpenWeather's free forecast covers 5 days, so the extra day leaves room for the drive itself. Anything else gets a `400`.
 
 Returns `{ results: [{ town, lat, lon, distance_km, arrival_time, forecast: { temperature, weather, windSpeed } }] }`
 
@@ -103,4 +110,4 @@ Returns `{ results: [{ town, lat, lon, distance_km, arrival_time, forecast: { te
 - **The in-memory cache is per process.** Running more than one instance would need a shared cache. Redis can implement the existing `Cache` interface without changing the service.
 - **ETAs don't include live traffic.** The free OpenRouteService tier doesn't provide it.
 - **Forecast horizon is 5 days**, the limit of OpenWeather's free tier.
-- Next: choose a departure time instead of "now", and alerts for severe weather along the route.
+- Next: alerts for severe weather along the route.

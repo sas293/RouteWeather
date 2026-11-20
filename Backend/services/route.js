@@ -49,7 +49,7 @@ export class RouteService {
         return forecast;
     }
 
-    async getRouteWeather(start, end) {
+    async getRouteWeather(start, end, departAt = Date.now()) {
 
         const routeKey = `route:${start.join(',')}:${end.join(',')}`;
 
@@ -94,13 +94,11 @@ export class RouteService {
 
         // 5. Fetch weather for all points in parallel (cached per ~1 km cell and 3-hour forecast slot)
 
-        const now = Date.now();
-
         const results = await Promise.all(sampled.map(async (point, i) => {
 
             const [lon, lat] = point.coord;
 
-            const timestamp = now + arrivalTimes[i] * 1000;
+            const timestamp = departAt + arrivalTimes[i] * 1000;
 
             const { town, ...forecast } = await this.#getForecastCached(lat, lon, timestamp);
 
