@@ -1,13 +1,9 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
 import routeRoutes from './routes/route.js';
 import { errorHandler } from './middlewares/error.js';
 import { generalLimiter } from './middlewares/rateLimiter.js';
 import { config } from './config/env.js';
-
-dotenv.config();
 
 const app = express();
 const port = config.port
@@ -18,13 +14,7 @@ app.use(cors({
   methods: ['GET', 'POST'],
 }));
 app.use(express.json());
-app.use(cookieParser());
 app.use(generalLimiter);
-
-app.use('/', (req, res, next) => {
-  console.log('Request generated');
-  next();
-});
 
 app.use('/route', routeRoutes);
 
