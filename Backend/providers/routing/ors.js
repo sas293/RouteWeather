@@ -27,7 +27,7 @@ export class OrsProvider extends RoutingProvider {
         return response.data;
 
     } catch (error) {
-        console.error('ORS API error:', error);
+        console.error('ORS API error:', error.message); // not the full error: it contains the API key header
 
         throw new AppError(
             'Routing service is currently unavailable',
